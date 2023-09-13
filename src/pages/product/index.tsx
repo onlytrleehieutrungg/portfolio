@@ -50,7 +50,6 @@ export default function ProductPage() {
   }
 
   const handleFilterValue = (filterValue: string) => {
-    
     setSearchValue(filterValue);
     if (timeoutName) {
       clearTimeout(timeoutName);
