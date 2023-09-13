@@ -6,17 +6,11 @@ import { useProduct, useSearchProduct } from "../../hook/useProduct";
 import { Params } from "../../types/base";
 
 export default function ProductPage() {
-  const [params, setParams] = useState<Partial<Params>>({
-    limit: 20,
-  });
-  const [searchParams, setSearchParams] = useState<Partial<Params>>({
-    limit: 0,
-  });
+  const [params, setParams] = useState<Partial<Params>>();
+  const [searchParams, setSearchParams] = useState<Partial<Params>>();
   const [searchValue, setSearchValue] = useState("");
-  const [filterValue, setFilterValue] = useState("");
   const [timeoutName, setTimeoutName] = useState<any>();
-
-  const [hashNext, setHasNext] = useState(true);
+  const [hasNext, setHasNext] = useState(true);
   const { data } = useProduct({
     params,
   });
@@ -24,26 +18,40 @@ export default function ProductPage() {
     params: searchParams,
   });
   const products =
-    searchValue === "" ? data?.data?.products : searchList?.data?.products;
+    searchValue === ""
+      ? data?.data?.products ?? []
+      : searchList?.data?.products ?? [];
 
   const fetchData = () => {
-    if (searchValue != "") {
-      setSearchParams({ q: searchValue });
-    } else if (params?.limit! + 20 <= data?.data?.total!) {
-      setParams({ limit: params?.limit! + 20 });
-    } else {
-      setHasNext(false);
-    }
+    searchValue != "" ? fetchSearchParams() : fetchParams();
   };
 
+  function fetchParams() {
+    const limit = (params?.limit ?? 30) + 20;
+    const maxLimit = data?.data?.total ?? limit;
+    setParams({ limit: Math.min(maxLimit, limit) });
+    if (products?.length == maxLimit) {
+      setHasNext(false);
+    }
+  }
+
+  function fetchSearchParams() {
+    const limit = searchParams?.limit! + 4;
+    const maxLimit = searchList?.data?.total ?? limit;
+    setSearchParams({ limit: Math.min(maxLimit, limit), q: searchValue });
+    if (Math.min(maxLimit, limit) == maxLimit) {
+      setHasNext(false);
+    }
+  }
+
   function handleSearchValue(searchString: string) {
-    setSearchValue(searchString);
-    setSearchParams({ q: searchString });
+    setHasNext(true);
+    setSearchParams({ limit: 4, q: searchString });
   }
 
   const handleFilterValue = (filterValue: string) => {
+    
     setSearchValue(filterValue);
-
     if (timeoutName) {
       clearTimeout(timeoutName);
     }
@@ -70,7 +78,7 @@ export default function ProductPage() {
         <InfiniteScroll
           dataLength={products?.length || 0}
           next={fetchData}
-          hasMore={hashNext}
+          hasMore={hasNext}
           scrollThreshold={1}
           loader={<h4>Loading...</h4>}
           endMessage={
